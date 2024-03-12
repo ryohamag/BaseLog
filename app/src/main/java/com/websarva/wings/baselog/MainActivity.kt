@@ -29,11 +29,23 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.websarva.wings.baselog.components.AddGameRecordScreen
+import com.websarva.wings.baselog.components.AnalysisScreen
+import com.websarva.wings.baselog.components.GameCard
+import com.websarva.wings.baselog.components.SettingsScreen
+import com.websarva.wings.baselog.components.ShowGameRecordScreen
+import com.websarva.wings.baselog.components.StatisticsScreen
 import com.websarva.wings.baselog.ui.theme.BaseLogTheme
 
 class MainActivity : ComponentActivity() {
@@ -46,7 +58,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainContent()
+                    HomeScreen()
                 }
             }
         }
@@ -56,42 +68,62 @@ class MainActivity : ComponentActivity() {
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainContent() {
+fun HomeScreen() {
+    val navController = rememberNavController()
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { /*TODO*/ }) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "新規試合データ作成")
+            if (currentRoute == "HomeScreen") { //ホームスクリーンならFABを表示させる
+                FloatingActionButton(onClick = {
+                    navController.navigate("AddGameRecordScreen")
+                }) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "新規試合データ作成")
+                }
             }
         },
-        topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.smallTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
-                title = {
-                    Text(text = "BaseLog")
-                }
-            )
-        },
         bottomBar = {
-            BottomAppBar(
-                actions = {
-                    IconButton(onClick = { /*TODO*/ }, modifier = Modifier.weight(1f)) {
-                        Icon(imageVector = Icons.Default.Home, contentDescription = "ホームボタン", modifier = Modifier.size(48.dp))
-                    }
-                    IconButton(onClick = { /*TODO*/ }, modifier = Modifier.weight(1f)) {
-                        Icon(painter = painterResource(id = R.drawable.baseline_storage_24), contentDescription = "打撃成績ボタン", modifier = Modifier.size(48.dp))
-                    }
-                    IconButton(onClick = { /*TODO*/ }, modifier = Modifier.weight(1f)) {
-                        Icon(painter = painterResource(id = R.drawable.baseline_show_chart_24), contentDescription = "打撃分析ボタン", modifier = Modifier.size(48.dp))
-                    }
-                    IconButton(onClick = { /*TODO*/ }, modifier = Modifier.weight(1f)) {
-                        Icon(imageVector = Icons.Default.Settings, contentDescription = "設定ボタン", modifier = Modifier.size(48.dp))
-                    }
-                }
-            ) 
+            BottomBar(navController = navController)
         }
     ) {
+        NavHost(navController = navController, startDestination = "HomeScreen") {
+            composable(route = "HomeScreen") {
+                GameCard(navController)
+            }
+            composable(route = "AddGameRecordScreen") {
+                AddGameRecordScreen()
+            }
+            composable(route = "ShowGameRecordScreen") {
+                ShowGameRecordScreen()
+            }
+            composable(route = "StatisticsScreen") {
+                StatisticsScreen()
+            }
+            composable(route = "AnalysisScreen") {
+                AnalysisScreen()
+            }
+            composable(route = "SettingsScreen") {
+                SettingsScreen()
+            }
+        }
     }
+}
+
+@Composable
+fun BottomBar(navController: NavController) {
+    BottomAppBar(
+        actions = {
+            IconButton(onClick = { navController.navigate("HomeScreen") }, modifier = Modifier.weight(1f)) {
+                Icon(imageVector = Icons.Default.Home, contentDescription = "ホームボタン", modifier = Modifier.size(32.dp))
+            }
+            IconButton(onClick = { navController.navigate("StatisticsScreen") }, modifier = Modifier.weight(1f)) {
+                Icon(painter = painterResource(id = R.drawable.baseline_storage_24), contentDescription = "打撃成績ボタン", modifier = Modifier.size(32.dp))
+            }
+            IconButton(onClick = { navController.navigate("AnalysisScreen") }, modifier = Modifier.weight(1f)) {
+                Icon(painter = painterResource(id = R.drawable.baseline_show_chart_24), contentDescription = "打撃分析ボタン", modifier = Modifier.size(32.dp))
+            }
+            IconButton(onClick = { navController.navigate("SettingsScreen") }, modifier = Modifier.weight(1f)) {
+                Icon(imageVector = Icons.Default.Settings, contentDescription = "設定ボタン", modifier = Modifier.size(32.dp))
+            }
+        }
+    ) 
 }
