@@ -35,7 +35,7 @@ fun GameCard(navController: NavController) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
-                painter = painterResource(id = R.drawable.eximage), 
+                painter = painterResource(id = R.drawable.clubimage),
                 contentDescription = "サムネ写真",
                 modifier = Modifier
                     .weight(1f)

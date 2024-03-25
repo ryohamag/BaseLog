@@ -14,10 +14,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -35,11 +37,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.websarva.wings.baselog.ViewModels.AddGameRecordScreenViewModel
 import com.websarva.wings.baselog.components.AddGameRecordScreen
 import com.websarva.wings.baselog.components.AnalysisScreen
 import com.websarva.wings.baselog.components.GameCard
@@ -47,7 +51,9 @@ import com.websarva.wings.baselog.components.SettingsScreen
 import com.websarva.wings.baselog.components.ShowGameRecordScreen
 import com.websarva.wings.baselog.components.StatisticsScreen
 import com.websarva.wings.baselog.ui.theme.BaseLogTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,7 +74,9 @@ class MainActivity : ComponentActivity() {
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    viewModel: AddGameRecordScreenViewModel = hiltViewModel()
+) {
     val navController = rememberNavController()
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     Scaffold(
@@ -80,6 +88,26 @@ fun HomeScreen() {
                     Icon(imageVector = Icons.Default.Add, contentDescription = "新規試合データ作成")
                 }
             }
+        },
+        topBar = {
+                 if (currentRoute == "AddGameRecordScreen") {
+                     CenterAlignedTopAppBar(
+                         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                             containerColor = MaterialTheme.colorScheme.primaryContainer,
+                             titleContentColor = MaterialTheme.colorScheme.primary,
+                         ),
+                         navigationIcon = {
+                             IconButton(
+                                 onClick = {navController.navigate("HomeScreen")},
+                             ) {
+                                 Icon(imageVector = Icons.Default.KeyboardArrowLeft, contentDescription = "戻るボタン")
+                             }},
+                         title = { Text(text = "試合情報の追加") },
+                         actions = { IconButton(onClick = { /*TODO*/ }) {
+                             Icon(imageVector = Icons.Default.Add, contentDescription = "追加ボタン")
+                         }}
+                     )
+                 }
         },
         bottomBar = {
             BottomBar(navController = navController)
