@@ -2,6 +2,7 @@ package com.websarva.wings.baselog.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,7 +16,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -23,13 +27,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -94,7 +101,7 @@ fun AddGameRecordScreen(
 
         Spacer(modifier = Modifier.height(1.dp))
 
-        Row( //先攻後攻切り替えボタン
+        Row( //先攻後攻切り替えボタン Boxを使うと良い説ある、、、？
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(20.dp)
@@ -244,6 +251,82 @@ fun AddGameRecordScreen(
                onValueChange = { viewModel.gameVenue = it },
                modifier = Modifier.weight(4f)
            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row( //打順,ポジション入力欄
+            Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "打順",
+                modifier = Modifier
+                    .align(CenterVertically)
+                    .weight(1f)
+            )
+            OutlinedTextField(
+                value = viewModel.battingOrder,
+                onValueChange = { viewModel.battingOrder = it },
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "番",
+                modifier = Modifier
+                    .align(CenterVertically)
+                    .weight(1f)
+            )
+            Text(
+                text = "ポジション",
+                modifier = Modifier
+                    .align(CenterVertically)
+                    .weight(2f),
+                fontSize = 14.sp
+            )
+            PositionDropdownMenu()
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PositionDropdownMenu() { //ポジションを選択するコンポーネント
+    val context = LocalContext.current
+    val positions = arrayOf("ピッチャー", "キャッチャー", "ファースト", "セカンド", "サード", "ショート", "レフト", "センター", "ライト", "DH")
+    var expanded by remember { mutableStateOf(false) }
+    var selectedPosition by remember { mutableStateOf("") }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth(0.5f)
+    ) {
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = {
+                expanded = !expanded
+            }
+        ) {
+            TextField(
+                value = selectedPosition,
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier.menuAnchor()
+            )
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                positions.forEach { position ->
+                    DropdownMenuItem(
+                        text = { Text(text = position) },
+                        onClick = {
+                            selectedPosition = position
+                            expanded = false
+                        }
+                    )
+                }
+            }
         }
     }
 }

@@ -14,5 +14,6 @@ class AddGameRecordScreenViewModel @Inject constructor() : ViewModel() {
     var tournamentName by mutableStateOf("") //大会名
     var ownTeamScore by mutableStateOf("") //自チーム得点
     var opposingTeamScore by mutableStateOf("") //相手チーム得点
-    var gameVenue by mutableStateOf("")
+    var gameVenue by mutableStateOf("") //試合会場
+    var battingOrder by mutableStateOf("")
 }
