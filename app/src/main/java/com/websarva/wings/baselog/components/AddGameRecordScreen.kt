@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -25,11 +26,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
@@ -43,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.websarva.wings.baselog.R
 import com.websarva.wings.baselog.ViewModels.AddGameRecordScreenViewModel
+import me.saket.cascade.CascadeDropdownMenu
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -284,6 +288,42 @@ fun AddGameRecordScreen(
             )
             PositionDropdownMenu()
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(
+            Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "1打席目",
+                modifier = Modifier
+                    .align(CenterVertically)
+            )
+            Spacer(modifier = Modifier.width(20.dp))
+            if(viewModel.showHittingResultText) {
+                viewModel.selectedAbbPosition?.let {
+                    viewModel.selectedAbbBattedBall?.let { it1 ->
+                        hittingResultText(
+                            position = it,
+                            battedBall = it1
+                        )
+                    }
+                }
+            } else if(viewModel.showNoHittingResultText) {
+                viewModel.selectedAbbNoBattedBall?.let { noHittingResultText(status = it) }
+            } else {
+                TextButton(
+                    onClick = { viewModel.isCascadeVisible = true },
+                ) {
+                    if (viewModel.isCascadeVisible) {
+                        hittingResultCascade()
+                    } else {
+                        Text(text = "追加")
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(64.dp))
     }
 }
 
@@ -327,6 +367,112 @@ fun PositionDropdownMenu() { //ポジションを選択するコンポーネン�
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun hittingResultCascade( //打撃結果を入力するメニュー
+    viewModel: AddGameRecordScreenViewModel = hiltViewModel()
+) {
+    val positions = mapOf(
+        "ピッチャー" to "投",
+        "キャッチャー" to "捕",
+        "ファースト" to "一",
+        "セカンド" to "二",
+        "サード" to "三",
+        "ショート" to "遊",
+        "レフト" to "左",
+        "センター" to "中",
+        "ライト" to "右"
+    )
+    val noBattedBall = mapOf(
+        "空振り三振" to "空振",
+        "見逃し三振" to "見逃",
+        "振り逃げ" to "振逃",
+        "フォアボール" to "四球",
+        "デッドボール" to "死球",
+        "打撃妨害" to "打妨"
+    )
+    val battedBall = mapOf(
+        "ゴロ" to "ゴ",
+        "ライナー" to "直",
+        "フライ" to "飛",
+        "ファールフライ" to "邪飛",
+        "ヒット" to "安",
+        "ツーベース" to "2",
+        "スリーベース" to "3",
+        "ホームラン" to "本",
+        "ランニングホームラン" to "走本",
+        "バント" to "ギ",
+        "犠牲フライ" to "犠",
+        "エラー" to "失",
+        "併殺打" to "併",
+        "フィルダースチョイス" to "選"
+    )
+    Box() {
+        CascadeDropdownMenu(
+            expanded = viewModel.isCascadeVisible,
+            onDismissRequest = { viewModel.isCascadeVisible = false },
+        ) {
+            positions.forEach { (position, abbPosition) ->
+                DropdownMenuItem(
+                    text = { Text(position) },
+                    children = {
+                        battedBall.forEach { (battedBall, abbBattedBall) ->
+                            DropdownMenuItem(
+                                text = { Text(battedBall) },
+                                onClick = {
+                                    viewModel.selectedHittingResult(abbPosition, abbBattedBall)
+                                    viewModel.showHittingResultText = true
+                                    viewModel.showNoHittingResultText = false
+                                    viewModel.isCascadeVisible = false
+                                }
+                            )
+                        }
+                    },
+                )
+            }
+            noBattedBall.forEach { (noBattedBall, abbNoBattedBall) ->
+                DropdownMenuItem(
+                    text = { Text(text = noBattedBall) },
+                    onClick = {
+                        viewModel.selectedNoHittingResult(abbNoBattedBall)
+                        viewModel.showNoHittingResultText = true
+                        viewModel.showHittingResultText = false
+                        viewModel.isCascadeVisible = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun hittingResultText(
+    viewModel: AddGameRecordScreenViewModel = hiltViewModel(),
+    position: String,
+    battedBall: String
+) {
+    TextButton(onClick = { viewModel.isCascadeVisible = true }) {
+        if(viewModel.isCascadeVisible) {
+            hittingResultCascade()
+        } else {
+            Text(text = position + battedBall)
+        }
+    }
+}
+
+@Composable
+fun noHittingResultText(
+    viewModel: AddGameRecordScreenViewModel = hiltViewModel(),
+    status: String
+) {
+    TextButton(onClick = { viewModel.isCascadeVisible = true }) {
+        if(viewModel.isCascadeVisible) {
+            hittingResultCascade()
+        } else {
+            Text(text = status)
         }
     }
 }
