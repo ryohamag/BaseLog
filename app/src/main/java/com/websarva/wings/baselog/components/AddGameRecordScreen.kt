@@ -1,5 +1,8 @@
 package com.websarva.wings.baselog.components
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,12 +45,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role.Companion.Button
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.websarva.wings.baselog.R
 import com.websarva.wings.baselog.ViewModels.AddGameRecordScreenViewModel
 import me.saket.cascade.CascadeDropdownMenu
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,13 +74,29 @@ fun AddGameRecordScreen(
         Spacer(modifier = Modifier.height(64.dp))
 
         Row( //日時、試合開始時間入力欄
-            Modifier.fillMaxWidth()
+            Modifier.fillMaxWidth(0.5f)
         ) {
-            Text(text = "日時", modifier = Modifier.weight(1f))
-            Text(text = "2024年",modifier = Modifier.weight(1f))
-            Text(text = "3月", modifier = Modifier.weight(1f))
-            Text(text = "8日", modifier = Modifier.weight(1f))
-            Text(text = "14:00~", modifier = Modifier.weight(1f))
+            Text(
+                text = "日時",
+                modifier = Modifier
+                    .weight(1f)
+                    .align(CenterVertically)
+            )
+            DatePickerExample()
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(
+            Modifier.fillMaxWidth(0.7f)
+        ) {
+            Text(
+                text = "試合開始時間",
+                modifier = Modifier
+                    .weight(0.5f)
+                    .align(CenterVertically)
+            )
+            TimePickerExample()
         }
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -291,38 +314,21 @@ fun AddGameRecordScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        Row(
-            Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "1打席目",
-                modifier = Modifier
-                    .align(CenterVertically)
-            )
-            Spacer(modifier = Modifier.width(20.dp))
-            if(viewModel.showHittingResultText) {
-                viewModel.selectedAbbPosition?.let {
-                    viewModel.selectedAbbBattedBall?.let { it1 ->
-                        hittingResultText(
-                            position = it,
-                            battedBall = it1
-                        )
-                    }
-                }
-            } else if(viewModel.showNoHittingResultText) {
-                viewModel.selectedAbbNoBattedBall?.let { noHittingResultText(status = it) }
-            } else {
-                TextButton(
-                    onClick = { viewModel.isCascadeVisible = true },
-                ) {
-                    if (viewModel.isCascadeVisible) {
-                        hittingResultCascade()
-                    } else {
-                        Text(text = "追加")
-                    }
-                }
+        Row() {
+            Text(text = "打撃結果", modifier = Modifier.align(CenterVertically))
+            TextButton(onClick = {
+                viewModel.addHittingResultComponent()
+            }) {
+                Text(text = "1打席追加")
             }
         }
+
+        // 状態に基づいてコンポーネントを動的に追加
+        for (i in 0 until viewModel.hittingResultCount.value) {
+            showHittingResult(atBatNumber = i)
+        }
+        Log.d("tag", viewModel.hittingResultList.toString())
+
         Spacer(modifier = Modifier.height(64.dp))
     }
 }
@@ -415,6 +421,7 @@ fun hittingResultCascade( //打撃結果を入力するメニュー
             expanded = viewModel.isCascadeVisible,
             onDismissRequest = { viewModel.isCascadeVisible = false },
         ) {
+
             positions.forEach { (position, abbPosition) ->
                 DropdownMenuItem(
                     text = { Text(position) },
@@ -427,6 +434,7 @@ fun hittingResultCascade( //打撃結果を入力するメニュー
                                     viewModel.showHittingResultText = true
                                     viewModel.showNoHittingResultText = false
                                     viewModel.isCascadeVisible = false
+                                    viewModel.hittingResultList.add(viewModel.hittingResultCount.value - 1, abbPosition + abbBattedBall)
                                 }
                             )
                         }
@@ -441,6 +449,7 @@ fun hittingResultCascade( //打撃結果を入力するメニュー
                         viewModel.showNoHittingResultText = true
                         viewModel.showHittingResultText = false
                         viewModel.isCascadeVisible = false
+                        viewModel.hittingResultList.add(viewModel.hittingResultCount.value - 1, abbNoBattedBall)
                     }
                 )
             }
@@ -451,14 +460,13 @@ fun hittingResultCascade( //打撃結果を入力するメニュー
 @Composable
 fun hittingResultText(
     viewModel: AddGameRecordScreenViewModel = hiltViewModel(),
-    position: String,
-    battedBall: String
+    atBatNumber: Int
 ) {
     TextButton(onClick = { viewModel.isCascadeVisible = true }) {
         if(viewModel.isCascadeVisible) {
             hittingResultCascade()
         } else {
-            Text(text = position + battedBall)
+            viewModel.hittingResultList[atBatNumber]?.let { Text(text = it) }
         }
     }
 }
@@ -466,13 +474,97 @@ fun hittingResultText(
 @Composable
 fun noHittingResultText(
     viewModel: AddGameRecordScreenViewModel = hiltViewModel(),
-    status: String
+    atBatNumber: Int
 ) {
     TextButton(onClick = { viewModel.isCascadeVisible = true }) {
         if(viewModel.isCascadeVisible) {
             hittingResultCascade()
         } else {
-            Text(text = status)
+            viewModel.hittingResultList[atBatNumber]?.let { Text(text = it) }
+        }
+    }
+}
+
+@Composable
+fun DatePickerExample() {
+    var selectedDate by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val calendar = Calendar.getInstance()
+
+    Button(onClick = {
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                // 月は0始まりなので、表示目的では1を足す
+                selectedDate = "$year/${month + 1}/$dayOfMonth"
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }) {
+        Text(if (selectedDate.isEmpty()) "日付を選択" else selectedDate)
+    }
+}
+
+@Composable
+fun TimePickerExample() {
+    var selectedTime by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val calendar = Calendar.getInstance()
+
+    Button(onClick = {
+        TimePickerDialog(
+            context,
+            { _, hourOfDay, minute ->
+                // 選択された時間を文字列として保存
+                selectedTime = String.format("%02d:%02d" + "～", hourOfDay, minute)
+            },
+            calendar.get(Calendar.HOUR_OF_DAY),
+            calendar.get(Calendar.MINUTE),
+            true // 24時間表示かどうか
+        ).show()
+    },
+    
+    ) {
+        Text(if (selectedTime.isEmpty()) "時間を選択" else selectedTime)
+    }
+}
+
+@Composable
+fun showHittingResult(
+    viewModel: AddGameRecordScreenViewModel = hiltViewModel(),
+    atBatNumber: Int
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = "${atBatNumber + 1}打席目",
+            modifier = Modifier
+                .align(CenterVertically)
+        )
+        Spacer(modifier = Modifier.width(20.dp))
+        if(viewModel.showHittingResultText) {
+            viewModel.selectedAbbPosition?.let {
+                viewModel.selectedAbbBattedBall?.let {
+                    hittingResultText(
+                        atBatNumber = atBatNumber
+                    )
+                }
+            }
+        } else if(viewModel.showNoHittingResultText) {
+            viewModel.selectedAbbNoBattedBall?.let { noHittingResultText(atBatNumber = atBatNumber) }
+        } else {
+            TextButton(
+                onClick = { viewModel.isCascadeVisible = true },
+            ) {
+                if (viewModel.isCascadeVisible) {
+                    hittingResultCascade()
+                } else {
+                    Text(text = "追加")
+                }
+            }
         }
     }
 }
