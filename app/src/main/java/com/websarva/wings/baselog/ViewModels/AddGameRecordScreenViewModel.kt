@@ -32,6 +32,10 @@ class AddGameRecordScreenViewModel @Inject constructor() : ViewModel() {
     var selectedAbbBattedBall: String? by mutableStateOf(null) //選択された打撃結果の打球
     var selectedAbbNoBattedBall: String? by mutableStateOf(null) //選択された三振、四球等の打撃結果
     var hittingResultList: MutableList<String?> by mutableStateOf(mutableListOf("追加")) //打撃記録を格納するリスト
+    var numOfResult = mutableStateOf(1)
+    var openedResult = mutableStateOf<Int?>(null)
+    var expanded: Boolean by mutableStateOf(false)
+    var hoge by mutableStateOf(1)
 
     // 選択された打撃結果を設定する関数
     fun selectedHittingResult(position: String, abbBattedBall: String) {
@@ -52,19 +56,23 @@ class AddGameRecordScreenViewModel @Inject constructor() : ViewModel() {
         hittingResultCount.value += 1
     }
 
-    // 各コンポーネントのカスケード表示状態を管理するマップ
-    var cascadeVisibilityMap = mutableStateMapOf<Int, Boolean>()
-        private set
-
-    // カスケードの表示状態を切り替える関数
-    fun toggleCascadeVisibility(atBatNumber: Int) {
-        val currentValue = cascadeVisibilityMap[atBatNumber] ?: false
-        cascadeVisibilityMap[atBatNumber] = !currentValue
+    fun showDetail(menuNum: Int) {
+//        if(menuNum == openedResult.value) {
+//            // 既に開かれているメニューを再度クリックした場合は非表示にする
+//            openedResult.value = 0
+//        }else{
+//            // メニュー番号を設定
+//            openedResult.value = menuNum
+//        }
+        openedResult.value = menuNum
     }
 
-    // 特定のatBatNumberのカスケードの表示状態を設定する関数
-    fun setCascadeVisibility(atBatNumber: Int, isVisible: Boolean) {
-        cascadeVisibilityMap[atBatNumber] = isVisible
+    fun addResult() {
+        numOfResult.value++
+        hittingResultCount.value++
     }
 
+    fun closeCascade() {
+        openedResult.value = 0
+    }
 }

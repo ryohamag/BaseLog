@@ -2,6 +2,7 @@ package com.websarva.wings.baselog.components
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.health.connect.datatypes.units.Length
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -58,8 +59,10 @@ import java.util.Calendar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddGameRecordScreen(
-    viewModel: AddGameRecordScreenViewModel = hiltViewModel()
+    viewModel: AddGameRecordScreenViewModel = hiltViewModel(),
+    listLength: Int? = viewModel.openedResult.value
 ) {
+    Log.d("tag", viewModel.hittingResultList.toString())
     // 選択状態を保持するための状態変数
     val (selectedOption, setSelectedOption) = remember { mutableStateOf("none") }
 
@@ -294,7 +297,7 @@ fun AddGameRecordScreen(
             OutlinedTextField(
                 value = viewModel.battingOrder,
                 onValueChange = { viewModel.battingOrder = it },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(2f)
             )
             Text(
                 text = "番",
@@ -312,22 +315,36 @@ fun AddGameRecordScreen(
             PositionDropdownMenu()
         }
 
+
+
         Spacer(modifier = Modifier.height(20.dp))
 
         Row() {
             Text(text = "打撃結果", modifier = Modifier.align(CenterVertically))
             TextButton(onClick = {
-                viewModel.addHittingResultComponent()
+                viewModel.addResult()
+                viewModel.openedResult.value = viewModel.openedResult.value!! + 1
             }) {
                 Text(text = "1打席追加")
             }
         }
 
         // 状態に基づいてコンポーネントを動的に追加
-        for (i in 0 until viewModel.hittingResultCount.value) {
-            showHittingResult(atBatNumber = i)
+        Log.d("numOfResult", "${viewModel.numOfResult.value}")
+        Log.d("openedResult", "${viewModel.openedResult.value}")
+        Log.d("count", "${viewModel.hoge}")
+        for (i in 1 .. viewModel.numOfResult.value) {
+            if(i == viewModel.openedResult.value) {
+                showHittingResult(atBatNumber = i, isShowCascade = true) {
+                    viewModel.showDetail(i)
+                }
+            } else {
+                showHittingResult(atBatNumber = i, isShowCascade =  false) {
+                    viewModel.showDetail(i)
+                }
+            }
         }
-        Log.d("tag", viewModel.hittingResultList.toString())
+
 
         Spacer(modifier = Modifier.height(64.dp))
     }
@@ -379,7 +396,8 @@ fun PositionDropdownMenu() { //ポジションを選択するコンポーネン�
 
 @Composable
 fun hittingResultCascade( //打撃結果を入力するメニュー
-    viewModel: AddGameRecordScreenViewModel = hiltViewModel()
+    viewModel: AddGameRecordScreenViewModel = hiltViewModel(),
+    isShowCascade: Boolean = false
 ) {
     val positions = mapOf(
         "ピッチャー" to "投",
@@ -418,8 +436,8 @@ fun hittingResultCascade( //打撃結果を入力するメニュー
     )
     Box() {
         CascadeDropdownMenu(
-            expanded = viewModel.isCascadeVisible,
-            onDismissRequest = { viewModel.isCascadeVisible = false },
+            expanded = isShowCascade,
+            onDismissRequest = { viewModel.closeCascade() },
         ) {
 
             positions.forEach { (position, abbPosition) ->
@@ -434,7 +452,7 @@ fun hittingResultCascade( //打撃結果を入力するメニュー
                                     viewModel.showHittingResultText = true
                                     viewModel.showNoHittingResultText = false
                                     viewModel.isCascadeVisible = false
-                                    viewModel.hittingResultList.add(viewModel.hittingResultCount.value - 1, abbPosition + abbBattedBall)
+                                    viewModel.hittingResultList.add(viewModel.hittingResultCount.value, abbPosition + abbBattedBall)
                                 }
                             )
                         }
@@ -449,7 +467,7 @@ fun hittingResultCascade( //打撃結果を入力するメニュー
                         viewModel.showNoHittingResultText = true
                         viewModel.showHittingResultText = false
                         viewModel.isCascadeVisible = false
-                        viewModel.hittingResultList.add(viewModel.hittingResultCount.value - 1, abbNoBattedBall)
+                        viewModel.hittingResultList.add(viewModel.hittingResultCount.value, abbNoBattedBall)
                     }
                 )
             }
@@ -460,13 +478,14 @@ fun hittingResultCascade( //打撃結果を入力するメニュー
 @Composable
 fun hittingResultText(
     viewModel: AddGameRecordScreenViewModel = hiltViewModel(),
-    atBatNumber: Int
+    atBatNumber: Int,
+    isShowCascade: Boolean = false
 ) {
     TextButton(onClick = { viewModel.isCascadeVisible = true }) {
-        if(viewModel.isCascadeVisible) {
-            hittingResultCascade()
+        if(isShowCascade&&viewModel.isCascadeVisible/*&& viewModel.hittingResultList[atBatNumber - 1] === null*/) {
+            hittingResultCascade(isShowCascade = true)
         } else {
-            viewModel.hittingResultList[atBatNumber]?.let { Text(text = it) }
+            viewModel.hittingResultList[atBatNumber - 1]?.let { Text(text = it) }
         }
     }
 }
@@ -474,13 +493,14 @@ fun hittingResultText(
 @Composable
 fun noHittingResultText(
     viewModel: AddGameRecordScreenViewModel = hiltViewModel(),
-    atBatNumber: Int
+    atBatNumber: Int,
+    isShowCascade: Boolean = false
 ) {
     TextButton(onClick = { viewModel.isCascadeVisible = true }) {
-        if(viewModel.isCascadeVisible) {
-            hittingResultCascade()
+        if(isShowCascade&&viewModel.isCascadeVisible /*&& viewModel.hittingResultList[atBatNumber - 1] === null*/) {
+            hittingResultCascade(isShowCascade = true)
         } else {
-            viewModel.hittingResultList[atBatNumber]?.let { Text(text = it) }
+            viewModel.hittingResultList[atBatNumber - 1]?.let { Text(text = it) }
         }
     }
 }
@@ -534,13 +554,16 @@ fun TimePickerExample() {
 @Composable
 fun showHittingResult(
     viewModel: AddGameRecordScreenViewModel = hiltViewModel(),
-    atBatNumber: Int
+    atBatNumber: Int,
+    isShowCascade: Boolean = false,
+    showResultDetail: () -> Unit = {}
 ) {
+
     Row(
         Modifier.fillMaxWidth(),
     ) {
         Text(
-            text = "${atBatNumber + 1}打席目",
+            text = "${atBatNumber}打席目",
             modifier = Modifier
                 .align(CenterVertically)
         )
@@ -549,18 +572,23 @@ fun showHittingResult(
             viewModel.selectedAbbPosition?.let {
                 viewModel.selectedAbbBattedBall?.let {
                     hittingResultText(
-                        atBatNumber = atBatNumber
+                        atBatNumber = atBatNumber,
+                        isShowCascade = isShowCascade
                     )
                 }
             }
         } else if(viewModel.showNoHittingResultText) {
-            viewModel.selectedAbbNoBattedBall?.let { noHittingResultText(atBatNumber = atBatNumber) }
+            viewModel.selectedAbbNoBattedBall?.let { noHittingResultText(atBatNumber = atBatNumber, isShowCascade = isShowCascade) }
         } else {
             TextButton(
-                onClick = { viewModel.isCascadeVisible = true },
+                onClick = {
+                    showResultDetail()
+                    Log.d("atBatNumber", "${atBatNumber}")
+//                    viewModel.showDetail(atBatNumber)
+                          },
             ) {
-                if (viewModel.isCascadeVisible) {
-                    hittingResultCascade()
+                if (isShowCascade) {
+                    hittingResultCascade(isShowCascade = isShowCascade)
                 } else {
                     Text(text = "追加")
                 }
