@@ -32,8 +32,13 @@ class AddGameRecordScreenViewModel @Inject constructor() : ViewModel() {
     var selectedAbbBattedBall: String? by mutableStateOf(null) //選択された打撃結果の打球
     var selectedAbbNoBattedBall: String? by mutableStateOf(null) //選択された三振、四球等の打撃結果
     var hittingResultList: MutableList<String?> by mutableStateOf(mutableListOf("追加")) //打撃記録を格納するリスト
-    var numOfResult = mutableStateOf(1)
-    var openedResult = mutableStateOf<Int?>(null)
+    var numOfResult = mutableStateOf(1) //打席の数
+    var openedResult = mutableStateOf<Int?>(null) //開かれている打席
+    var RBI by mutableStateOf("0") //打点
+    var run by mutableStateOf("0") //得点
+    var stealSuccess by mutableStateOf("0") //盗塁数
+    var stealFailed by mutableStateOf("0") //盗塁死数
+    var memo by mutableStateOf("\n\n\n\n")
     var expanded: Boolean by mutableStateOf(false)
     var hoge by mutableStateOf(1)
 

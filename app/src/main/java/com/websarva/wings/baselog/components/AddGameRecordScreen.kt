@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -286,7 +287,8 @@ fun AddGameRecordScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         Row( //打順,ポジション入力欄
-            Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(0.4f),
+            horizontalArrangement = Arrangement.Start
         ) {
             Text(
                 text = "打順",
@@ -297,7 +299,7 @@ fun AddGameRecordScreen(
             OutlinedTextField(
                 value = viewModel.battingOrder,
                 onValueChange = { viewModel.battingOrder = it },
-                modifier = Modifier.weight(2f)
+                modifier = Modifier.weight(1f)
             )
             Text(
                 text = "番",
@@ -305,6 +307,15 @@ fun AddGameRecordScreen(
                     .align(CenterVertically)
                     .weight(1f)
             )
+            
+        }
+        
+        Spacer(modifier = Modifier.height(20.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(0.8f),
+            horizontalArrangement = Arrangement.Start
+        ) {
             Text(
                 text = "ポジション",
                 modifier = Modifier
@@ -345,6 +356,71 @@ fun AddGameRecordScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row( //打点、得点、盗塁、盗塁死入力欄
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "打点",
+                modifier = Modifier
+                    .weight(1f),
+                fontSize = 14.sp
+            )
+            OutlinedTextField(
+                value = viewModel.RBI,
+                onValueChange = { viewModel.RBI = it },
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "得点",
+                modifier = Modifier
+                    .weight(1f),
+                fontSize = 14.sp
+            )
+            OutlinedTextField(
+                value = viewModel.run,
+                onValueChange = { viewModel.run = it },
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "盗塁",
+                modifier = Modifier
+                    .weight(1f),
+                fontSize = 14.sp
+            )
+            OutlinedTextField(
+                value = viewModel.stealSuccess,
+                onValueChange = { viewModel.stealSuccess = it },
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "盗塁死",
+                modifier = Modifier
+                    .weight(1f),
+                fontSize = 12.sp
+            )
+            OutlinedTextField(
+                value = viewModel.stealFailed,
+                onValueChange = { viewModel.stealFailed = it },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text(text = "メモ欄")
+        Spacer(modifier = Modifier.height(10.dp))
+        OutlinedTextField(
+            value = viewModel.memo,
+            onValueChange = { viewModel.memo = it },
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Spacer(modifier = Modifier.height(64.dp))
     }
@@ -360,7 +436,7 @@ fun PositionDropdownMenu() { //ポジションを選択するコンポーネン�
 
     Box(
         modifier = Modifier
-            .fillMaxWidth(0.5f)
+            .fillMaxWidth(0.7f)
     ) {
         ExposedDropdownMenuBox(
             expanded = expanded,
