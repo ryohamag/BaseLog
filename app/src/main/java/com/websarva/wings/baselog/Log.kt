@@ -6,10 +6,8 @@ import androidx.room.PrimaryKey
 @Entity
 data class Log(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    var year: Int, //西暦
-    var month: Int, //月
-    var date: Int, //日
-    var startTime: Int, //試合開始時間
+    var date: String, //日
+    var startTime: String, //試合開始時間
     var ownTeamName: String, //自チーム名
     var opposingTeamName: String, //相手チーム名
     var matchType: String, //試合種別

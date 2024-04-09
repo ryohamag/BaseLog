@@ -3,8 +3,17 @@ package com.websarva.wings.baselog.components
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.health.connect.datatypes.units.Length
+import android.net.Uri
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.content.MediaType.Companion.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,13 +22,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -33,6 +46,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,12 +62,16 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role.Companion.Button
+import androidx.compose.ui.semantics.Role.Companion.Image
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.rememberAsyncImagePainter
+import coil.compose.rememberImagePainter
 import com.websarva.wings.baselog.R
 import com.websarva.wings.baselog.ViewModels.AddGameRecordScreenViewModel
+import com.websarva.wings.baselog.ViewModels.MatchType
 import me.saket.cascade.CascadeDropdownMenu
 import java.util.Calendar
 
@@ -61,15 +79,17 @@ import java.util.Calendar
 @Composable
 fun AddGameRecordScreen(
     viewModel: AddGameRecordScreenViewModel = hiltViewModel(),
-    listLength: Int? = viewModel.openedResult.value
 ) {
-    Log.d("tag", viewModel.hittingResultList.toString())
     // 選択状態を保持するための状態変数
     val (selectedOption, setSelectedOption) = remember { mutableStateOf("none") }
 
     // 枠線の色を定義
     val defaultBorderColor = Color.Gray
     val selectedBorderColor = Color.Blue
+
+    // ここでのselectedOptionはViewModelのselectedMatchTypeを参照する
+    val selectedMatchType = viewModel.selectedMatchType
+    val setSelectedMatchType: (MatchType) -> Unit = { viewModel.setMatchType(it) }
     Column( //親column
         modifier = Modifier
             .padding(20.dp)
@@ -112,33 +132,37 @@ fun AddGameRecordScreen(
                 text = "チーム",
                 modifier = Modifier
                     .weight(1f)
-                    .align(Alignment.CenterVertically)
+                    .align(CenterVertically)
             )
             OutlinedTextField(
                 value = viewModel.ownTeamName,
                 onValueChange = { viewModel.ownTeamName = it },
                 modifier = Modifier
                     .weight(3f)
-                    .align(Alignment.CenterVertically)
+                    .align(CenterVertically)
             )
             Spacer(modifier = Modifier.width(30.dp))
             Text(
-                text = "先攻",
+                text = if (viewModel.isOwnTeamFirst) "先攻" else "後攻",
                 modifier = Modifier
                     .weight(1f)
-                    .align(Alignment.CenterVertically)
+                    .align(CenterVertically)
             )
         }
 
         Spacer(modifier = Modifier.height(1.dp))
 
-        Row( //先攻後攻切り替えボタン Boxを使うと良い説ある、、、？
+        Row( //先攻後攻切り替えボタン
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
         ) {
-            Spacer(modifier = Modifier.weight(4f))
-            IconButton(onClick = { /*TODO*/ }, modifier = Modifier.weight(1f)) {
+            Spacer(modifier = Modifier.weight(5f))
+            IconButton(
+                onClick = { viewModel.toggleFirstAttack() },
+                modifier = Modifier
+                    .weight(2f)
+                    .align(CenterVertically)
+            ) {
                 Icon(painter = painterResource(id = R.drawable.baseline_sync_24), contentDescription = "先攻後攻切り替え")
             }
         }
@@ -162,7 +186,7 @@ fun AddGameRecordScreen(
             )
             Spacer(modifier = Modifier.width(30.dp))
             Text(
-                text = "後攻",
+                text = if (!viewModel.isOwnTeamFirst) "先攻" else "後攻",
                 modifier = Modifier
                     .weight(1f)
                     .align(CenterVertically)
@@ -170,6 +194,7 @@ fun AddGameRecordScreen(
         }
 
         Spacer(modifier = Modifier.height(20.dp))
+
 
         Row( //試合種別選択
             modifier = Modifier.fillMaxWidth()
@@ -183,7 +208,7 @@ fun AddGameRecordScreen(
             )
             Spacer(modifier = Modifier.weight(1f))
             OutlinedButton( //公式戦ボタン
-                onClick = { setSelectedOption("option1") },
+                onClick = { setSelectedMatchType(MatchType.OFFICIAL) },
                 // 選択されているかによって枠線の色を変更
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = Color.Transparent,
@@ -191,7 +216,7 @@ fun AddGameRecordScreen(
                     disabledContainerColor = Color.Transparent,
                     disabledContentColor = Color.Gray,
                 ),
-                border = if (selectedOption == "option1") BorderStroke(1.dp, selectedBorderColor) else BorderStroke(1.dp, defaultBorderColor),
+                border = if (selectedMatchType == MatchType.OFFICIAL) BorderStroke(1.dp, selectedBorderColor) else BorderStroke(1.dp, defaultBorderColor),
                 shape = RoundedCornerShape(50), // 枠線の角を丸くする
                 modifier = Modifier.weight(4f)
             ) {
@@ -201,7 +226,7 @@ fun AddGameRecordScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             OutlinedButton( //練習試合ボタン
-                onClick = { setSelectedOption("option2") },
+                onClick = { setSelectedMatchType(MatchType.PRACTICE) },
                 // 選択されているかによって枠線の色を変更
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = Color.Transparent,
@@ -209,7 +234,7 @@ fun AddGameRecordScreen(
                     disabledContainerColor = Color.Transparent,
                     disabledContentColor = Color.Gray
                 ),
-                border = if (selectedOption == "option2") BorderStroke(1.dp, selectedBorderColor) else BorderStroke(1.dp, defaultBorderColor),
+                border = if (selectedMatchType == MatchType.PRACTICE) BorderStroke(1.dp, selectedBorderColor) else BorderStroke(1.dp, defaultBorderColor),
                 shape = RoundedCornerShape(50), // 枠線の角を丸くする
                 modifier = Modifier.weight(4f)
             ) {
@@ -341,9 +366,6 @@ fun AddGameRecordScreen(
         }
 
         // 状態に基づいてコンポーネントを動的に追加
-        Log.d("numOfResult", "${viewModel.numOfResult.value}")
-        Log.d("openedResult", "${viewModel.openedResult.value}")
-        Log.d("count", "${viewModel.hoge}")
         for (i in 1 .. viewModel.numOfResult.value) {
             if(i == viewModel.openedResult.value) {
                 showHittingResult(atBatNumber = i, isShowCascade = true) {
@@ -414,25 +436,35 @@ fun AddGameRecordScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        Text(text = "メモ欄")
+        Text(text = "試合メモ")
         Spacer(modifier = Modifier.height(10.dp))
         OutlinedTextField(
             value = viewModel.memo,
             onValueChange = { viewModel.memo = it },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3,
+            placeholder = { Text(text = "天候,試合時間など") }
         )
+        
+        Spacer(modifier = Modifier.height(20.dp))
 
-        Spacer(modifier = Modifier.height(64.dp))
+        Text(text = "写真")
+        Spacer(modifier = Modifier.height(10.dp))
+        ImagePickerAndDisplay()
+        Text(text = "画像タップでサムネイルに設定、長押しで削除できます。", fontSize = 12.sp)
+
+
+        Spacer(modifier = Modifier.height(64.dp)) //bottomBarと被らないようにするためのスペース
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PositionDropdownMenu() { //ポジションを選択するコンポーネント
-    val context = LocalContext.current
+fun PositionDropdownMenu(
+    viewModel: AddGameRecordScreenViewModel = hiltViewModel()
+) { //ポジションを選択するコンポーネント
     val positions = arrayOf("ピッチャー", "キャッチャー", "ファースト", "セカンド", "サード", "ショート", "レフト", "センター", "ライト", "DH")
     var expanded by remember { mutableStateOf(false) }
-    var selectedPosition by remember { mutableStateOf("") }
 
     Box(
         modifier = Modifier
@@ -444,12 +476,13 @@ fun PositionDropdownMenu() { //ポジションを選択するコンポーネン�
                 expanded = !expanded
             }
         ) {
-            TextField(
-                value = selectedPosition,
+            OutlinedTextField(
+                value = viewModel.selectedPosition,
                 onValueChange = {},
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier.menuAnchor()
+                modifier = Modifier
+                    .menuAnchor(),
             )
 
             ExposedDropdownMenu(
@@ -460,7 +493,7 @@ fun PositionDropdownMenu() { //ポジションを選択するコンポーネン�
                     DropdownMenuItem(
                         text = { Text(text = position) },
                         onClick = {
-                            selectedPosition = position
+                            viewModel.selectedPosition = position
                             expanded = false
                         }
                     )
@@ -582,8 +615,9 @@ fun noHittingResultText(
 }
 
 @Composable
-fun DatePickerExample() {
-    var selectedDate by remember { mutableStateOf("") }
+fun DatePickerExample(
+    viewModel: AddGameRecordScreenViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
 
@@ -592,20 +626,21 @@ fun DatePickerExample() {
             context,
             { _, year, month, dayOfMonth ->
                 // 月は0始まりなので、表示目的では1を足す
-                selectedDate = "$year/${month + 1}/$dayOfMonth"
+                viewModel.selectedDate = "$year/${month + 1}/$dayOfMonth"
             },
             calendar.get(Calendar.YEAR),
             calendar.get(Calendar.MONTH),
             calendar.get(Calendar.DAY_OF_MONTH)
         ).show()
     }) {
-        Text(if (selectedDate.isEmpty()) "日付を選択" else selectedDate)
+        Text(if (viewModel.selectedDate.isEmpty()) "日付を選択" else viewModel.selectedDate)
     }
 }
 
 @Composable
-fun TimePickerExample() {
-    var selectedTime by remember { mutableStateOf("") }
+fun TimePickerExample(
+    viewModel: AddGameRecordScreenViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
 
@@ -614,7 +649,7 @@ fun TimePickerExample() {
             context,
             { _, hourOfDay, minute ->
                 // 選択された時間を文字列として保存
-                selectedTime = String.format("%02d:%02d" + "～", hourOfDay, minute)
+                viewModel.selectedTime = String.format("%02d:%02d" + "～", hourOfDay, minute)
             },
             calendar.get(Calendar.HOUR_OF_DAY),
             calendar.get(Calendar.MINUTE),
@@ -623,7 +658,7 @@ fun TimePickerExample() {
     },
     
     ) {
-        Text(if (selectedTime.isEmpty()) "時間を選択" else selectedTime)
+        Text(if (viewModel.selectedTime.isEmpty()) "時間を選択" else viewModel.selectedTime)
     }
 }
 
@@ -659,7 +694,7 @@ fun showHittingResult(
             TextButton(
                 onClick = {
                     showResultDetail()
-                    Log.d("atBatNumber", "${atBatNumber}")
+                    Log.d("atBatNumber", "$atBatNumber")
 //                    viewModel.showDetail(atBatNumber)
                           },
             ) {
@@ -670,5 +705,114 @@ fun showHittingResult(
                 }
             }
         }
+    }
+}
+
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun ImagePickerAndDisplay(
+    viewModel: AddGameRecordScreenViewModel = hiltViewModel()
+) {
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri: Uri? ->
+            uri?.let {
+                // 既存のリストに新しいURIを追加
+                viewModel.imageUris = viewModel.imageUris + it
+            }
+        }
+    )
+
+    Button(onClick = {
+        pickImageLauncher.launch("image/*")
+    }) {
+        Text("画像を追加")
+    }
+
+    // LazyRowを使って選択された画像を横スクロールで表示
+    LazyRow {
+        items(viewModel.imageUris) { uri ->
+            Image(
+                painter = rememberAsyncImagePainter(uri),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(200.dp) // 例として200.dpを指定
+                    .combinedClickable(
+                        onClick = { //タップでサムネイルに設定
+                            viewModel.uriToSetThumbnail = uri
+                            viewModel.showSetThumbnailDialog = true
+                        },
+                        onLongClick = { //長押しで削除
+                            viewModel.uriToDelete = uri
+                            viewModel.showDeleteDialog = true
+                        }
+                    )
+            )
+        }
+    }
+
+    if (viewModel.showSetThumbnailDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                viewModel.showSetThumbnailDialog = false
+            },
+            title = { Text("確認") },
+            text = { Text("この画像をサムネイルに設定しますか？") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.uriToSetThumbnail?.let { uri ->
+                            viewModel.gameThumbnail = uri
+                            viewModel.uriToSetThumbnail = null
+                        }
+                        viewModel.showSetThumbnailDialog = false
+                    }
+                ) {
+                    Text("はい")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = {
+                        viewModel.showSetThumbnailDialog = false
+                    }
+                ) {
+                    Text("いいえ")
+                }
+            }
+        )
+    }
+
+    if (viewModel.showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                viewModel.showDeleteDialog = false
+            },
+            title = { Text("確認") },
+            text = { Text("この画像を削除しますか？") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.uriToDelete?.let { uri ->
+                            viewModel.imageUris = viewModel.imageUris - uri
+                            viewModel.uriToDelete = null
+                        }
+                        viewModel.showDeleteDialog = false
+                    }
+                ) {
+                    Text("はい")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = {
+                        viewModel.showDeleteDialog = false
+                    }
+                ) {
+                    Text("いいえ")
+                }
+            }
+        )
     }
 }
