@@ -52,6 +52,8 @@ import com.websarva.wings.baselog.components.ShowGameRecordScreen
 import com.websarva.wings.baselog.components.StatisticsScreen
 import com.websarva.wings.baselog.ui.theme.BaseLogTheme
 import dagger.hilt.android.AndroidEntryPoint
+import android.util.Log
+
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -88,26 +90,6 @@ fun HomeScreen(
                     Icon(imageVector = Icons.Default.Add, contentDescription = "新規試合データ作成")
                 }
             }
-        },
-        topBar = {
-                 if (currentRoute == "AddGameRecordScreen") {
-                     CenterAlignedTopAppBar(
-                         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                             containerColor = MaterialTheme.colorScheme.primaryContainer,
-                             titleContentColor = MaterialTheme.colorScheme.primary,
-                         ),
-                         navigationIcon = {
-                             IconButton(
-                                 onClick = {navController.navigate("HomeScreen")},
-                             ) {
-                                 Icon(imageVector = Icons.Default.KeyboardArrowLeft, contentDescription = "戻るボタン")
-                             }},
-                         title = { Text(text = "試合情報の追加") },
-                         actions = { IconButton(onClick = { /*TODO*/ }) {
-                             Icon(imageVector = Icons.Default.Add, contentDescription = "追加ボタン")
-                         }}
-                     )
-                 }
         },
         bottomBar = {
             BottomBar(navController = navController)

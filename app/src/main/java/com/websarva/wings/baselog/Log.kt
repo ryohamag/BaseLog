@@ -6,22 +6,24 @@ import androidx.room.PrimaryKey
 @Entity
 data class Log(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    var date: String, //日
-    var startTime: String, //試合開始時間
-    var ownTeamName: String, //自チーム名
-    var opposingTeamName: String, //相手チーム名
-    var matchType: String, //試合種別
-    var tournamentName: String, //大会名
-    var ownTeamScore: Int, //自チーム得点
-    var opposingTeamScore: Int, //相手チーム得点
-    var gameVenue: String, //試合会場
-    var battingOrder: Int, //打順
-    var position: String, //ポジション
-    var hittingResult: String, //打撃結果
-    var RBI: Int, //打点
-    var run: Int, //得点
-    var stealSuccess: Int, //盗塁数
-    var stealFailed: Int, //盗塁死数
-    var memo: String, //メモ欄
-    var photoList: String, //保存された写真
+    val date: String, //日付
+    val startTime: String, //試合開始時間
+    val ownTeamName: String, //自チーム名
+    val opposingTeamName: String, //相手チーム名
+    val isOwnTeamFirst: String, //先攻か後攻か
+    val matchType: String, //試合種別
+    val tournamentName: String, //大会名
+    val ownTeamScore: Int, //自チーム得点
+    val opposingTeamScore: Int, //相手チーム得点
+    val gameVenue: String, //試合会場
+    val battingOrder: String, //打順
+    val position: String, //ポジション
+    val hittingResult: String, //打撃結果
+    val RBI: Int, //打点
+    val run: Int, //得点
+    val stealSuccess: Int, //盗塁数
+    val stealFailed: Int, //盗塁死数
+    val memo: String, //メモ欄
+    var photoList: String?, //保存された写真
+    val gameThumbnail: String //サムネイルの写真
 )
