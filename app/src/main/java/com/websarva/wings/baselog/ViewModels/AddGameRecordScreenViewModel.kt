@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.websarva.wings.baselog.Log
 import com.websarva.wings.baselog.LogDao
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.Month
@@ -22,6 +23,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AddGameRecordScreenViewModel @Inject constructor(private val logDao: LogDao) : ViewModel() {
+    val logs = logDao.loadAllLogs().distinctUntilChanged()
+
     var selectedDate by mutableStateOf("") //試合日時
     var selectedTime by mutableStateOf("") //試合開始時間
 

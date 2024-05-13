@@ -17,11 +17,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.websarva.wings.baselog.Log
 import com.websarva.wings.baselog.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GameCard(navController: NavController) {
+fun GameCard(
+    navController: NavController,
+    logs: Log
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -45,9 +49,24 @@ fun GameCard(navController: NavController) {
                     .weight(3f)
                     .padding(5.dp)
             ) {
-                Text(text = "2024/3/11 名工大千種G")
-                Text(text = "練習試合 vs岐阜協立大学 11-4 Win")
-                Text(text = "遊失 四球 三振 四球")
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = logs.date)
+                    Text(text = logs.gameVenue)
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = logs.matchType)
+                    Text(text = "vs" + logs.opposingTeamName)
+                    Text(text = logs.ownTeamScore.toString() + "-" + logs.opposingTeamScore.toString() + " Win")
+                }
+                Text(text = logs.hittingResult)
             }
         }
     }

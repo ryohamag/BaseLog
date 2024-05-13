@@ -77,6 +77,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
@@ -92,6 +93,7 @@ import java.util.Calendar
 @Composable
 fun AddGameRecordScreen(
     viewModel: AddGameRecordScreenViewModel = hiltViewModel(),
+    navController: NavController
 ) {
     // 枠線の色を定義
     val defaultBorderColor = Color.Gray
@@ -102,7 +104,7 @@ fun AddGameRecordScreen(
     val setSelectedMatchType: (MatchType) -> Unit = { viewModel.setMatchType(it) }
 
     if(viewModel.showCreateLogDialog) {
-        CreateLogDialog()
+        CreateLogDialog(navController = navController)
     }
 
     if(viewModel.showErrorToast) {
@@ -110,8 +112,6 @@ fun AddGameRecordScreen(
         Toast.makeText(context, "入力内容に不備があります", Toast.LENGTH_LONG).show()
         viewModel.showErrorToast = false
     }
-
-    val navController = rememberNavController()
     Scaffold(
         topBar = {
                 CenterAlignedTopAppBar(
@@ -925,7 +925,8 @@ fun ImagePickerAndDisplay(
 
 @Composable
 fun CreateLogDialog(
-    viewModel: AddGameRecordScreenViewModel = hiltViewModel()
+    viewModel: AddGameRecordScreenViewModel = hiltViewModel(),
+    navController: NavController
 ) {
     AlertDialog(
         onDismissRequest = {
@@ -938,6 +939,7 @@ fun CreateLogDialog(
                 onClick = {
                     viewModel.createLog()
                     viewModel.showCreateLogDialog = false
+                    navController.navigate("HomeScreen")
                 }
             ) {
                 Text("はい")

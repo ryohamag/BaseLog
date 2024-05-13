@@ -53,6 +53,9 @@ import com.websarva.wings.baselog.components.StatisticsScreen
 import com.websarva.wings.baselog.ui.theme.BaseLogTheme
 import dagger.hilt.android.AndroidEntryPoint
 import android.util.Log
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.websarva.wings.baselog.components.LogList
 
 
 @AndroidEntryPoint
@@ -97,10 +100,11 @@ fun HomeScreen(
     ) {
         NavHost(navController = navController, startDestination = "HomeScreen") {
             composable(route = "HomeScreen") {
-                GameCard(navController)
+                val logs by viewModel.logs.collectAsState(initial = emptyList())
+                LogList(logs = logs, navController = navController)
             }
             composable(route = "AddGameRecordScreen") {
-                AddGameRecordScreen()
+                AddGameRecordScreen(navController = navController)
             }
             composable(route = "ShowGameRecordScreen") {
                 ShowGameRecordScreen()
