@@ -107,7 +107,7 @@ fun HomeScreen(
                 AddGameRecordScreen(navController = navController)
             }
             composable(route = "ShowGameRecordScreen") {
-                ShowGameRecordScreen()
+                ShowGameRecordScreen(navController = navController)
             }
             composable(route = "StatisticsScreen") {
                 StatisticsScreen()

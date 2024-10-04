@@ -1,5 +1,7 @@
 package com.websarva.wings.baselog.ViewModels
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -7,6 +9,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.websarva.wings.baselog.Log
@@ -14,12 +17,7 @@ import com.websarva.wings.baselog.LogDao
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.Month
-import java.time.Year
-import java.util.UUID
 import javax.inject.Inject
-
 
 @HiltViewModel
 class AddGameRecordScreenViewModel @Inject constructor(private val logDao: LogDao) : ViewModel() {
@@ -31,6 +29,7 @@ class AddGameRecordScreenViewModel @Inject constructor(private val logDao: LogDa
     var ownTeamName by mutableStateOf("") //自チーム名
     var opposingTeamName by mutableStateOf("") //相手チーム名
 
+    var showTournamentNameField by mutableStateOf(false) //大会名入力欄の表示制御
     var tournamentName by mutableStateOf("") //大会名
 
     var ownTeamScore by mutableStateOf("") //自チーム得点
@@ -60,9 +59,9 @@ class AddGameRecordScreenViewModel @Inject constructor(private val logDao: LogDa
 
     var memo by mutableStateOf("") //メモ
 
-    var imageUris by mutableStateOf(listOf<Uri?>(null)) //試合の写真
+    var imageUris by mutableStateOf(listOf<Uri?>()) //試合の写真
     var showSetThumbnailDialog by mutableStateOf(false) //サムネイル設定ダイアログの制御
-    var showDeleteDialog by mutableStateOf(false) //画像削除ダイアログの制御
+    var showImageDeleteDialog by mutableStateOf(false) //画像削除ダイアログの制御
     var uriToSetThumbnail by mutableStateOf<Uri?>(null) //サムネイルに設定する画像
     var uriToDelete by mutableStateOf<Uri?>(null) //削除する画像
     var gameThumbnail by mutableStateOf<Uri?>(null) //
@@ -70,6 +69,7 @@ class AddGameRecordScreenViewModel @Inject constructor(private val logDao: LogDa
     var showCreateLogDialog by mutableStateOf(false) //ログ作成確認ダイアログ
     var showErrorToast by mutableStateOf(false) //ログ入力不備トースト表示
 
+    var showLogDeleteDialog by mutableStateOf(false) //ログ削除確認ダイアログ
 
     fun createLog() {
         val defaultThumbnailUri = "res/drawable/noimage.jpg"
@@ -79,14 +79,25 @@ class AddGameRecordScreenViewModel @Inject constructor(private val logDao: LogDa
             ownTeamName = ownTeamName,
             opposingTeamName = opposingTeamName,
             isOwnTeamFirst = if(isOwnTeamFirst) "先攻" else "後攻",
-            matchType = matchTypeInfo,
+            matchType = when (selectedMatchType) {
+                MatchType.OFFICIAL -> "公式戦"
+                MatchType.PRACTICE -> "練習試合"
+                null -> ""
+            },
             tournamentName = tournamentName,
             ownTeamScore = ownTeamScore.toInt(),
             opposingTeamScore = opposingTeamScore.toInt(),
+            winOrLose = if (ownTeamScore.toInt() > opposingTeamScore.toInt()) {
+                "Win"
+            } else if (ownTeamScore.toInt() < opposingTeamScore.toInt()) {
+                "Lose"
+            } else {
+                "Draw"
+            },
             gameVenue = gameVenue,
             battingOrder = battingOrder,
             position = selectedPosition,
-            hittingResult = hittingResultList.joinToString(),
+            hittingResult = hittingResultList.joinToString(separator = "/"),
             RBI = RBI.toInt(),
             run = run.toInt(),
             stealSuccess = stealSuccess.toInt(),
@@ -101,6 +112,11 @@ class AddGameRecordScreenViewModel @Inject constructor(private val logDao: LogDa
         }
     }
 
+    fun deleteLog(log: Log) {
+        viewModelScope.launch {
+            logDao.deleteLog(log)
+        }
+    }
 
     // 選択された打撃結果を設定する関数
     fun selectedHittingResult(position: String, abbBattedBall: String) {
@@ -125,13 +141,6 @@ class AddGameRecordScreenViewModel @Inject constructor(private val logDao: LogDa
 
     fun setMatchType(matchType: MatchType) {
         selectedMatchType = matchType
-    }
-
-    // matchTypeに応じた特別な処理
-    private val matchTypeInfo = when (selectedMatchType) {
-        MatchType.OFFICIAL -> "公式戦"
-        MatchType.PRACTICE -> "練習試合"
-        null -> ""
     }
 
     //選択された打撃結果の番号

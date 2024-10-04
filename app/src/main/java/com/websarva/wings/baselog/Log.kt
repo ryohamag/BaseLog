@@ -15,6 +15,7 @@ data class Log(
     val tournamentName: String, //大会名
     val ownTeamScore: Int, //自チーム得点
     val opposingTeamScore: Int, //相手チーム得点
+    val winOrLose: String, //勝敗
     val gameVenue: String, //試合会場
     val battingOrder: String, //打順
     val position: String, //ポジション

@@ -1,10 +1,13 @@
 package com.websarva.wings.baselog.components
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.pm.PackageManager
 import android.health.connect.datatypes.units.Length
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -76,6 +79,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -209,9 +213,7 @@ fun AddGameRecordScreen(
                 Spacer(modifier = Modifier.weight(5f))
                 IconButton(
                     onClick = {
-                        Log.d("LogTag", "ownTeamScore: ${viewModel.ownTeamScore}")
                         viewModel.toggleFirstAttack()
-                        viewModel.createLog()
                     },
                     modifier = Modifier
                         .weight(2f)
@@ -263,7 +265,10 @@ fun AddGameRecordScreen(
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 OutlinedButton( //公式戦ボタン
-                    onClick = { setSelectedMatchType(MatchType.OFFICIAL) },
+                    onClick = {
+                        setSelectedMatchType(MatchType.OFFICIAL)
+                        viewModel.showTournamentNameField = true
+                              },
                     // 選択されているかによって枠線の色を変更
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = Color.Transparent,
@@ -281,7 +286,10 @@ fun AddGameRecordScreen(
                 Spacer(modifier = Modifier.weight(1f))
 
                 OutlinedButton( //練習試合ボタン
-                    onClick = { setSelectedMatchType(MatchType.PRACTICE) },
+                    onClick = {
+                        setSelectedMatchType(MatchType.PRACTICE)
+                        viewModel.showTournamentNameField = false
+                              },
                     // 選択されているかによって枠線の色を変更
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = Color.Transparent,
@@ -299,21 +307,40 @@ fun AddGameRecordScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Row( //大会名入力欄
-                Modifier.fillMaxWidth()
-            ) {
-                Text(text = "大会名",
-                    modifier = Modifier
-                        .weight(1f)
-                        .align(CenterVertically)
-                )
-                OutlinedTextField(
-                    value = viewModel.tournamentName,
-                    onValueChange = { viewModel.tournamentName = it },
-                    Modifier.weight(4f),
-                    singleLine = true
-                )
+            if (viewModel.showTournamentNameField && selectedMatchType == MatchType.OFFICIAL) { //公式戦の場合のみ大会名入力欄を表示
+                Row( //大会名入力欄
+                    Modifier.fillMaxWidth()
+                ) {
+                    Text(text = "大会名",
+                        modifier = Modifier
+                            .weight(1f)
+                            .align(CenterVertically)
+                    )
+                    OutlinedTextField(
+                        value = viewModel.tournamentName,
+                        onValueChange = { viewModel.tournamentName = it },
+                        Modifier.weight(4f),
+                        singleLine = true
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
             }
+
+//            Row( //大会名入力欄
+//                Modifier.fillMaxWidth()
+//            ) {
+//                Text(text = "大会名",
+//                    modifier = Modifier
+//                        .weight(1f)
+//                        .align(CenterVertically)
+//                )
+//                OutlinedTextField(
+//                    value = viewModel.tournamentName,
+//                    onValueChange = { viewModel.tournamentName = it },
+//                    Modifier.weight(4f),
+//                    singleLine = true
+//                )
+//            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -820,21 +847,60 @@ fun showHittingResult(
 fun ImagePickerAndDisplay(
     viewModel: AddGameRecordScreenViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
+
     val pickImageLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenMultipleDocuments(),
-        onResult = { uris: List<Uri> ->
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uris: Uri? ->
             uris.let {
-                // 既存のリストに新しいURIを追加
-                viewModel.imageUris = viewModel.imageUris + it
+                viewModel.imageUris += it
             }
         }
     )
 
-    Button(onClick = {
-        pickImageLauncher.launch(arrayOf("image/*"))
-    }) {
-        Text("画像を追加")
+    // 権限要求の結果を受け取るためのLauncher
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted: Boolean ->
+            if (isGranted) {
+                // 権限が許可された場合、画像ピッカーを起動
+                pickImageLauncher.launch(arrayOf("image/*"))
+            } else {
+                // 権限が拒否された場合の処理
+                Toast.makeText(context, "権限が拒否されました。", Toast.LENGTH_SHORT).show()
+            }
+        }
+    )
+
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        // APIレベルが33未満の場合、権限を動的に要求
+        Button(onClick = {
+            when (PackageManager.PERMISSION_GRANTED) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                ) -> {
+                    // すでに権限がある場合は、直接画像ピッカーを起動
+                    pickImageLauncher.launch(arrayOf("image/*"))
+                }
+                else -> {
+                    // 権限がない場合は、権限を要求
+                    requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+                }
+            }
+        }) {
+            Text("画像を追加")
+        }
+    } else {
+        // APIレベルが33以上の場合、権限要求なしで画像ピッカーを起動
+        Button(onClick = {
+            // 直接画像ピッカーを起動
+            pickImageLauncher.launch(arrayOf("image/*"))
+        }) {
+            Text("画像を追加")
+        }
     }
+
 
     // LazyRowを使って選択された画像を横スクロールで表示
     LazyRow {
@@ -851,7 +917,7 @@ fun ImagePickerAndDisplay(
                         },
                         onLongClick = { //長押しで削除
                             viewModel.uriToDelete = uri
-                            viewModel.showDeleteDialog = true
+                            viewModel.showImageDeleteDialog = true
                         }
                     )
             )
@@ -873,6 +939,7 @@ fun ImagePickerAndDisplay(
                             viewModel.uriToSetThumbnail = null
                         }
                         viewModel.showSetThumbnailDialog = false
+                        Log.d("gameThumbnail", viewModel.gameThumbnail.toString())
                     }
                 ) {
                     Text("はい")
@@ -890,10 +957,10 @@ fun ImagePickerAndDisplay(
         )
     }
 
-    if (viewModel.showDeleteDialog) {
+    if (viewModel.showImageDeleteDialog) {
         AlertDialog(
             onDismissRequest = {
-                viewModel.showDeleteDialog = false
+                viewModel.showImageDeleteDialog = false
             },
             title = { Text("確認") },
             text = { Text("この画像を削除しますか？") },
@@ -904,7 +971,7 @@ fun ImagePickerAndDisplay(
                             viewModel.imageUris = viewModel.imageUris - uri
                             viewModel.uriToDelete = null
                         }
-                        viewModel.showDeleteDialog = false
+                        viewModel.showImageDeleteDialog = false
                     }
                 ) {
                     Text("はい")
@@ -913,7 +980,7 @@ fun ImagePickerAndDisplay(
             dismissButton = {
                 Button(
                     onClick = {
-                        viewModel.showDeleteDialog = false
+                        viewModel.showImageDeleteDialog = false
                     }
                 ) {
                     Text("いいえ")
